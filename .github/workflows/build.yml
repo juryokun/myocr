@@ -14,9 +14,18 @@ jobs:
         with:
           python-version: '3.12'
 
-      - run: pip install -r requirements.txt
-      - run: pip install pyinstaller
-      - run: |
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt `
+          pip install "paddlex[ocr]" `
+          pip install pyinstaller `
+
+      - name: Verify OCR
+        run: |
+          python -c "from paddleocr import PaddleOCR; print('import OK')"
+
+      - name: Build
+        run: |
           pyinstaller `
             --windowed `
             --collect-data paddleocr `
