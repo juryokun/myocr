@@ -14,13 +14,27 @@ jobs:
         with:
           python-version: '3.12'
 
+      - name: Show packages
+        run: |
+          pip show paddlex
+          pip list
+    
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install "paddlex[ocr]"
-          pip install pyinstaller
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install "paddlex[ocr]"
+          python -m pip install pyinstaller
 
+      - name: Install OCR dependencies
+        run: |
+          python -m pip install "paddlex[ocr-core]"
+    
+      - name: Show paddlex package
+        run: |
+          python -m pip show paddlex
+    
       - name: Verify OCR
         run: |
           python -c "from paddleocr import PaddleOCR; print('import OK')"
