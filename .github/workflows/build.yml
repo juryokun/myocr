@@ -38,6 +38,12 @@ jobs:
       - name: Verify OCR
         run: |
           python -c "from paddleocr import PaddleOCR; print('import OK')"
+          
+      - name: Verify PaddleOCR
+        run: |
+          python -c "import paddlex; print('paddlex ok')"
+          python -c "from paddleocr import PaddleOCR; print('import ok')"
+          python -c "ocr = PaddleOCR(lang='japan'); print('ocr ok')"
 
       - name: Build
         run: |
