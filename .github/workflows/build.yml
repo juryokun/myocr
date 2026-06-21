@@ -41,9 +41,7 @@ jobs:
           
       - name: Verify PaddleOCR
         run: |
-          python -c "import paddlex; print('paddlex ok')"
-          python -c "from paddleocr import PaddleOCR; print('import ok')"
-          python -c "ocr = PaddleOCR(lang='japan'); print('ocr ok')"
+          python -c "from paddleocr import PaddleOCR; ocr=PaddleOCR(lang='japan'); print('OCR OK')"
 
       - name: Build
         run: |
