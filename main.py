@@ -26,11 +26,15 @@ class OCRWindow(QWidget):
         self.setWindowTitle("OCRツール")
         self.resize(800, 600)
 
-        self.ocr = PaddleOCR(lang="japan")
+        self.ocr = PaddleOCR(
+            lang="japan",
+            use_angle_cls=False,
+        )
 
         self.image_files = []
         self.output_dir = Path.cwd() / "output"
         self.output_dir.mkdir(exist_ok=True)
+        self.output_file = None
 
         self.create_ui()
 
@@ -38,13 +42,14 @@ class OCRWindow(QWidget):
         self.label = QLabel("画像未選択")
 
         self.result_edit = QTextEdit()
-        self.result_edit.setReadOnly(True)
+        self.result_edit.setReadOnly(False)
 
         self.btn_file = QPushButton("画像選択")
         self.btn_dir = QPushButton("ディレクトリ選択")
         self.btn_clip = QPushButton("クリップボード貼り付け")
         self.btn_run = QPushButton("OCR実行")
         self.btn_copy = QPushButton("結果をコピー")
+        self.btn_save = QPushButton("修正内容を保存")
 
         self.rb_new = QRadioButton("新規ファイル")
         self.rb_append = QRadioButton("前回ファイルへ追記")
@@ -62,6 +67,7 @@ class OCRWindow(QWidget):
         button_layout.addWidget(self.btn_file)
         button_layout.addWidget(self.btn_dir)
         button_layout.addWidget(self.btn_clip)
+        button_layout.addWidget(self.btn_save)
 
         layout = QVBoxLayout()
         layout.addWidget(self.label)
@@ -77,6 +83,7 @@ class OCRWindow(QWidget):
         self.btn_clip.clicked.connect(self.paste_image)
         self.btn_run.clicked.connect(self.run_ocr)
         self.btn_copy.clicked.connect(self.copy_result)
+        self.btn_save.clicked.connect(self.save_edited_text)
 
     def select_files(self):
         files, _ = QFileDialog.getOpenFileNames(
@@ -132,20 +139,17 @@ class OCRWindow(QWidget):
         for file in self.image_files:
             self.result_edit.append(f"処理中: {Path(file).name}")
 
-            preprocessed = self.preprocess_image(file)
-
-            result = self.ocr.predict(preprocessed)
+            result = self.ocr.ocr(file, cls=False)
 
             texts = []
 
-            for page in result:
-                rec_texts = page["rec_texts"]
-                rec_scores = page["rec_scores"]
+            if result and result[0]:
+                for line in result[0]:
+                    text = line[1][0]
+                    score = line[1][1]
 
-                for text, score in zip(rec_texts, rec_scores):
                     text = text.strip()
 
-                    # 前の行と結合
                     if (
                         texts
                         and not texts[-1].endswith(("。", "！", "？"))
@@ -169,17 +173,31 @@ class OCRWindow(QWidget):
     def save_text(self, text):
         if self.rb_new.isChecked():
             filename = datetime.now().strftime("%Y%m%d_%H%M%S.txt")
-            output_file = self.output_dir / filename
+            self.output_file = self.output_dir / filename
             mode = "w"
         else:
-            output_file = self.output_dir / "ocr_result.txt"
+            self.output_file = self.output_dir / "ocr_result.txt"
             mode = "a"
 
-        with open(output_file, mode, encoding="utf-8") as f:
+        with open(self.output_file, mode, encoding="utf-8") as f:
             f.write(text)
             f.write("\n")
 
-        QMessageBox.information(self, "完了", f"保存しました\n{output_file}")
+        QMessageBox.information(self, "完了", f"保存しました\n{self.output_file}")
+
+    def save_edited_text(self):
+        if self.output_file is None:
+            QMessageBox.warning(self, "エラー", "保存先ファイルがありません")
+            return
+
+        text = self.result_edit.toPlainText()
+
+        with open(self.output_file, "w", encoding="utf-8") as f:
+            f.write(text)
+
+        QMessageBox.information(
+            self, "完了", f"修正内容を保存しました\n{self.output_file}"
+        )
 
     def preprocess_image(self, image_path):
         img = Image.open(image_path)
